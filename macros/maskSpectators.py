@@ -13,47 +13,49 @@ MASK_CENTER = args.center
 MASK_EDGES = args.edges
 
 #path of the file with the hitmap
-path = "/home/giacomo/its-corryvreckan-tools/output/SPSNovember22/for_masking_475230516221125231020.root"
+path = "output/2023-10_SPS/maskcreation_422231250231017232859.root"
+mask_dir = "."# ./masking/linear_2023"
 #alpide that we whant to mask
-alpide_list = [1,2,3,4,5]
-z_target = 125
+alpide_list = [2,3,4,5,6,7]
+z_target = 100
+deltaz0 = 125
 target_thickness = 5
-z_position = [150,175,200,225,250]
+z_position = [125,150,175,200,225,250]
 pixel_pitch = [29.24,26.88]
 file = ROOT.TFile(path)
 radius0 = 1000
+beam_sigma_max = 230
+nsigma = 2
+
+
 target_distance_last = z_position[-1] -z_target -target_thickness/2.
+
 npixels_x = 1024
 npixels_y = 512
-file_name_list = [
-                    "masking_1.txt",
-                    "masking_2.txt",
-                    "masking_3.txt",
-                    "masking_4.txt",
-                    "masking_5.txt",
-                ]
-
 test_file = ROOT.TFile("test.root","recreate")
-for alpide,z_alpide,file_name in zip(alpide_list,z_position,file_name_list):
-    #if MERGE:
-    #    f = open(file_name, "a")
-    #else:
+for alpide,z_alpide in zip(alpide_list,z_position):
     if MASK_CENTER:
         th2 = ROOT.TH2D("th2_"+str(alpide),";x;y",1024,-0.5,1023.5,512,-0.5,511.5)
-        f = open("masking_"+str(alpide)+".txt", "w")
-        print("masking_"+str(alpide)+".txt")
+        f = open(mask_dir+"/output/MaskCreator/masking_t"+str(alpide)+".txt", "w")
+        #print("masking_"+str(alpide)+".txt")
         hitmap = file.Get("ClusteringSpatial/ALPIDE_"+str(alpide)+"/clusterPositionLocal")
 
         mean_x = hitmap.GetMean(1)
         mean_y = hitmap.GetMean(2)
-        print("ALPIDE:",alpide)
-        print("mean x: ",mean_x)
-        print("mean y: ",mean_y)
+        print("ALPIDE "+str(alpide)+":")
+        hitmap = file.Get("ClusteringSpatial/ALPIDE_"+str(alpide)+"/clusterPositionGlobal")
+
+        mean_x_glo = hitmap.GetMean(1)
+        mean_y_glo = hitmap.GetMean(2)
         theta_list = []
 
-        radius = radius0*(z_alpide-z_target)/125.
+        radius = ROOT.TMath.Sqrt((radius0*(z_alpide-z_target)/125.)**2.+4.*beam_sigma_max**2. )
         X = radius/pixel_pitch[0]
         Y = radius/pixel_pitch[1]
+
+        print("center x: ",mean_x_glo," mm")
+        print("center y: ",mean_y_glo," mm")
+        print("radius: ",radius/1000," mm")
 
         for ix in range(0,npixels_x):
             for iy in range(0,npixels_y):
