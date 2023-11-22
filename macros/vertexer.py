@@ -1,6 +1,7 @@
 import random
 from scipy import optimize
 from ROOT import TF2
+import math
 
 def fit_primary_vertex(tracks, beam, z_target):
 
@@ -11,16 +12,16 @@ def fit_primary_vertex(tracks, beam, z_target):
     def distToPvSquared(parameters):
         xv, yv, zv = parameters
         dist2 = 0
-        for _, row in tracks.iterrows():
-            dist2 += (row["tracks.vx"]*zv+row["tracks.px"]-xv)**2+(row["tracks.vy"]*zv+row["tracks.py"]-yv)**2
+        for track in tracks:
+            dist2 += (track[0]*zv+track[2]-xv)**2+(track[1]*zv+track[3]-yv)**2
         dist2 += (beam["beam.vx"]*zv+beam["beam.px"]-xv)**2+(beam["beam.vy"]*zv+beam["beam.py"]-yv)**2
         return dist2
 
     # Initial guess
     initial_guess = [x0, y0 , z_target]
-
     # Optimize the function using the BFGS method
     result = optimize.minimize(distToPvSquared, initial_guess, method='BFGS', tol=1e-5)
+    
     # Retrieve the results
     return result.x
 
@@ -65,3 +66,27 @@ def write_selection(conf_file, parameters = [0,0,0,0], type = "Pb"):
     # Open the file in write mode and write the modified list to the file
     with open(conf_file, 'w') as file:
         file.writelines(lines)
+
+        import math
+
+def compute_dca(point, line_params):
+    """
+    Calculate the distance between a point and a line parameterized in 3D space.
+
+    Parameters:
+        point (tuple): A tuple representing the coordinates of the point (x, y, z).
+        line_params (tuple): A tuple representing the parameters of the line (vx, vy, x0, y0).
+
+    Returns:
+        float: The distance between the point and the line in z, y, and z.
+    """
+    x1, y1, z1 = point
+    vx, vy, x0, y0 = line_params
+
+    numerator = (x1 - x0) * vx + (y1 - y0) * vy + z1
+    denominator = vx**2 + vy**2 + 1
+
+    t = numerator / denominator
+
+    distance = [vx*t + x0 - x1, vy*t + y0 - y1, t - z1]
+    return distance
